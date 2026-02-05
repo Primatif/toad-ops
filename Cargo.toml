@@ -1,11 +1,11 @@
 [package]
 name = "toad-ops"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-toad-core = { version = "0.6.0", path = "../toad-core" }
+toad-core = { version = "0.7.0", path = "../toad-core" }
 wait-timeout = "0.2"
 walkdir = "2.5"
 
