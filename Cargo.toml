@@ -1,0 +1,11 @@
+[package]
+name = "toad-ops"
+version = "0.3.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+toad-core = { path = "../toad-core" }
+
+[dev-dependencies]
+tempfile = "3.10"
