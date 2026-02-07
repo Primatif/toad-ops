@@ -57,6 +57,49 @@ fn test_calculate_project_stats() -> Result<()> {
 }
 
 #[test]
+fn test_clean_project() -> Result<()> {
+    let dir = tempdir()?;
+    let p = dir.path();
+
+    // Create source file
+    fs::write(p.join("README.md"), "hello")?;
+
+    // Create artifact directory
+    let target_dir = p.join("target");
+    fs::create_dir(&target_dir)?;
+    fs::write(target_dir.join("artifact"), "0".repeat(100))?;
+
+    // 1. Dry run
+    let artifacts = vec!["target".to_string()];
+    let res = crate::clean::clean_project(p, &artifacts, true)?;
+    assert!(res.bytes_reclaimed >= 100);
+    assert!(target_dir.exists());
+
+    // 2. Real clean
+    let res = crate::clean::clean_project(p, &artifacts, false)?;
+    assert!(res.bytes_reclaimed >= 100);
+    assert!(!target_dir.exists());
+    assert!(p.join("README.md").exists());
+
+    Ok(())
+}
+
+#[test]
+fn test_clean_project_safety() -> Result<()> {
+    let dir = tempdir()?;
+    let p = dir.path();
+
+    // Try to clean a reserved path
+    let artifacts = vec![".git".to_string()];
+    let res = crate::clean::clean_project(p, &artifacts, false)?;
+
+    assert_eq!(res.bytes_reclaimed, 0);
+    assert!(res.errors[0].contains("Skipping reserved path"));
+
+    Ok(())
+}
+
+#[test]
 fn test_format_size() {
     assert_eq!(format_size(500), "500 B");
     assert_eq!(format_size(1024), "1.00 KB");
