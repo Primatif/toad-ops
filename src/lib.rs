@@ -1,3 +1,4 @@
+pub mod audit;
 pub mod safety;
 pub mod shell;
 pub mod stats;

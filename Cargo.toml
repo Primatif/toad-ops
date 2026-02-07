@@ -1,13 +1,17 @@
 [package]
 name = "toad-ops"
-version = "0.7.0"
+version = "1.0.0"
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-toad-core = { version = "0.7.0", path = "../toad-core" }
+chrono = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toad-core = { version = "1.0.0", path = "../toad-core" }
 wait-timeout = "0.2"
 walkdir = "2.5"
+whoami = "1.5"
 
 [dev-dependencies]
 tempfile = "3.10"
