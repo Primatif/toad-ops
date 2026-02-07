@@ -4,7 +4,6 @@ use anyhow::Result;
 use std::fs;
 use std::time::Duration;
 use tempfile::tempdir;
-use toad_core::ProjectStack;
 
 #[test]
 fn test_run_in_dir_success() -> Result<()> {
@@ -47,7 +46,7 @@ fn test_calculate_project_stats() -> Result<()> {
     fs::create_dir(&target_dir)?;
     fs::write(target_dir.join("binary"), "0".repeat(1000))?; // 1000 bytes
 
-    let stats = calculate_project_stats(p, &ProjectStack::Rust);
+    let stats = calculate_project_stats(p, &vec!["target".to_string()]);
 
     assert!(stats.total_bytes >= 1012);
     assert!(stats.artifact_bytes >= 1000);
