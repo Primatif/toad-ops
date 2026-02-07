@@ -11,8 +11,7 @@ pub struct ProjectStats {
 }
 
 /// Calculates disk usage statistics for a project.
-pub fn calculate_project_stats(path: &Path, artifact_dirs: &[String]) -> ProjectStats {
-    let artifact_set: HashSet<&str> = artifact_dirs.iter().map(|s| s.as_str()).collect();
+pub fn calculate_project_stats(path: &Path, artifact_dirs: &HashSet<&str>) -> ProjectStats {
     let mut stats = ProjectStats::default();
 
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
@@ -22,7 +21,7 @@ pub fn calculate_project_stats(path: &Path, artifact_dirs: &[String]) -> Project
                 stats.total_bytes += size;
 
                 // Check if this file is inside an artifact directory
-                if is_artifact(entry.path(), path, &artifact_set) {
+                if is_artifact(entry.path(), path, artifact_dirs) {
                     stats.artifact_bytes += size;
                 } else {
                     stats.source_bytes += size;

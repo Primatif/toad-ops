@@ -46,7 +46,9 @@ fn test_calculate_project_stats() -> Result<()> {
     fs::create_dir(&target_dir)?;
     fs::write(target_dir.join("binary"), "0".repeat(1000))?; // 1000 bytes
 
-    let stats = calculate_project_stats(p, &vec!["target".to_string()]);
+    let mut artifact_dirs = std::collections::HashSet::new();
+    artifact_dirs.insert("target");
+    let stats = calculate_project_stats(p, &artifact_dirs);
 
     assert!(stats.total_bytes >= 1012);
     assert!(stats.artifact_bytes >= 1000);

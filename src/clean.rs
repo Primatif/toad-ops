@@ -40,8 +40,12 @@ pub fn clean_project(path: &Path, artifact_dirs: &[String], dry_run: bool) -> Re
     };
 
     for artifact in artifact_dirs {
-        // Safety check: Don't allow cleaning reserved paths
-        if RESERVED_PATHS.contains(&artifact.as_str()) {
+        // Safety check: Don't allow cleaning reserved paths (case-insensitive)
+        let artifact_lower = artifact.to_lowercase();
+        if RESERVED_PATHS
+            .iter()
+            .any(|p| p.to_lowercase() == artifact_lower)
+        {
             result
                 .errors
                 .push(format!("Skipping reserved path: {}", artifact));
@@ -54,7 +58,8 @@ pub fn clean_project(path: &Path, artifact_dirs: &[String], dry_run: bool) -> Re
         }
 
         // Calculate size before deletion
-        let stats = calculate_project_stats(&target_path, &[]); // Pass empty artifact list to count everything as "source" for size calc
+        let empty_set = std::collections::HashSet::new();
+        let stats = calculate_project_stats(&target_path, &empty_set);
         let size = stats.total_bytes;
 
         if dry_run {
