@@ -16,7 +16,7 @@ pub struct AuditEntry {
 }
 
 pub fn log_operation(entry: AuditEntry) -> Result<()> {
-    let log_path = GlobalConfig::config_dir()?.join("ops.log");
+    let log_path = GlobalConfig::config_dir(None)?.join("ops.log");
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
