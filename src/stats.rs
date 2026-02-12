@@ -12,14 +12,34 @@ pub struct ProjectStats {
 }
 
 /// Generates a structured analytics report for a set of projects.
-pub fn generate_analytics_report(projects: &[ProjectDetail]) -> AnalyticsReport {
+pub fn generate_analytics_report(
+    projects: &[ProjectDetail],
+    query: Option<&str>,
+    tag: Option<&str>,
+) -> AnalyticsReport {
     let mut offenders = Vec::new();
     let mut total_usage = 0;
     let mut total_artifacts = 0;
 
     for p in projects {
-        let artifact_dirs: HashSet<&str> = p.artifact_dirs.iter().map(|s| s.as_str()).collect();
-        let stats = calculate_project_stats(&p.path, &artifact_dirs);
+        if let Some(q) = query {
+            if !p.name.to_lowercase().contains(&q.to_lowercase()) {
+                continue;
+            }
+        }
+
+        if let Some(t) = tag {
+            let target = if t.starts_with('#') {
+                t.to_string()
+            } else {
+                format!("#{}", t)
+            };
+            if !p.tags.contains(&target) {
+                continue;
+            }
+        }
+
+        let stats = calculate_project_stats(&p.path, &artifact_set_to_hashset(&p.artifact_dirs));
 
         total_usage += stats.total_bytes;
         total_artifacts += stats.artifact_bytes;
@@ -41,6 +61,10 @@ pub fn generate_analytics_report(projects: &[ProjectDetail]) -> AnalyticsReport 
         total_artifacts,
         offenders,
     }
+}
+
+fn artifact_set_to_hashset(dirs: &[String]) -> std::collections::HashSet<&str> {
+    dirs.iter().map(|s| s.as_str()).collect()
 }
 
 /// Calculates disk usage statistics for a project.

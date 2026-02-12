@@ -2,20 +2,7 @@ use crate::stats::calculate_project_stats;
 use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
-use toad_core::{ProgressReporter, ProjectDetail, ToadResult};
-
-pub struct CleanResult {
-    pub bytes_reclaimed: u64,
-    pub files_removed: usize,
-    pub errors: Vec<String>,
-}
-
-pub struct BatchCleanReport {
-    pub results: Vec<(String, ToadResult<CleanResult>)>,
-    pub total_reclaimed: u64,
-    pub success_count: usize,
-    pub fail_count: usize,
-}
+use toad_core::{BatchCleanReport, CleanResult, ProgressReporter, ProjectDetail, ToadResult};
 
 pub const RESERVED_PATHS: &[&str] = &[
     ".git",
