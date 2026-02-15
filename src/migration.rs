@@ -52,7 +52,7 @@ pub fn compare_projects(source: &ProjectDetail, target: &ProjectDetail) -> Migra
     MigrationPreflight {
         source: source.name.clone(),
         target: target.name.clone(),
-        compatibility_score: if score > 100 { 100 } else { score as u8 },
+        compatibility_score: if score < 0 { 0 } else if score > 100 { 100 } else { score as u8 },
         mismatches,
         matching_capabilities: matches,
     }

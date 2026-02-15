@@ -34,12 +34,28 @@ pub fn distribute_skills(
 ) -> ToadResult<Vec<PathBuf>> {
     let mut synced_paths = Vec::new();
 
-    for vendor in vendors {
-        let vendor_dir = match vendor.as_str() {
-            "windsurf" => root.join(".windsurf"),
-            "cursor" => root.join(".cursor"),
-            "gemini" => root.join(".gemini"),
-            _ => continue,
+    for vendor_spec in vendors {
+        let (_vendor_name, vendor_dir) = if vendor_spec.contains(':') {
+            let parts: Vec<&str> = vendor_spec.splitn(2, ':').collect();
+            (parts[0], root.join(parts[1]))
+        } else {
+            let dir = match vendor_spec.to_lowercase().as_str() {
+                "windsurf" => root.join(".windsurf"),
+                "cursor" => root.join(".cursor"),
+                "gemini" => root.join(".gemini"),
+                "copilot" => root.join(".github/copilot"),
+                "continue" => root.join(".continue"),
+                "aider" => root.join(".aider"),
+                "supermaven" => root.join(".supermaven"),
+                "trae" => root.join(".trae"),
+                "cline" => root.join(".cline"),
+                "pearai" => root.join(".pearai"),
+                "bolt" => root.join(".bolt"),
+                "lovable" => root.join(".lovable"),
+                "v0" => root.join(".v0"),
+                _ => continue,
+            };
+            (vendor_spec.as_str(), dir)
         };
 
         if !vendor_dir.exists() {
