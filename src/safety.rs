@@ -29,15 +29,23 @@ pub fn is_stack_mismatch(command: &str, project_stack: &str) -> bool {
     if cmd_lower.starts_with("cargo ") && !stack_lower.contains("rust") {
         return true;
     }
-    if (cmd_lower.starts_with("npm ") || cmd_lower.starts_with("pnpm ") || cmd_lower.starts_with("yarn ")) 
-        && !(stack_lower.contains("node") || stack_lower.contains("javascript") || stack_lower.contains("typescript")) {
+    if (cmd_lower.starts_with("npm ")
+        || cmd_lower.starts_with("pnpm ")
+        || cmd_lower.starts_with("yarn "))
+        && !(stack_lower.contains("node")
+            || stack_lower.contains("javascript")
+            || stack_lower.contains("typescript"))
+    {
         return true;
     }
     if cmd_lower.starts_with("go ") && !stack_lower.contains("go") {
         return true;
     }
-    if (cmd_lower.starts_with("python ") || cmd_lower.starts_with("pip ") || cmd_lower.starts_with("poetry ")) 
-        && !stack_lower.contains("python") {
+    if (cmd_lower.starts_with("python ")
+        || cmd_lower.starts_with("pip ")
+        || cmd_lower.starts_with("poetry "))
+        && !stack_lower.contains("python")
+    {
         return true;
     }
 

@@ -22,13 +22,14 @@ pub fn run_in_dir(dir: &Path, command: &str, timeout: Duration) -> ToadResult<Op
         .spawn()
         .map_err(|e| ToadError::OperationFailed(format!("Failed to spawn process: {}", e)))?;
 
-    match child.wait_timeout(timeout).map_err(|e| {
-        ToadError::OperationFailed(format!("Error waiting for process: {}", e))
-    })? {
+    match child
+        .wait_timeout(timeout)
+        .map_err(|e| ToadError::OperationFailed(format!("Error waiting for process: {}", e)))?
+    {
         Some(status) => {
-            let output = child.wait_with_output().map_err(|e| {
-                ToadError::OperationFailed(format!("Failed to read output: {}", e))
-            })?;
+            let output = child
+                .wait_with_output()
+                .map_err(|e| ToadError::OperationFailed(format!("Failed to read output: {}", e)))?;
             Ok(OpResult {
                 stdout: String::from_utf8_lossy(&output.stdout).to_string(),
                 stderr: String::from_utf8_lossy(&output.stderr).to_string(),

@@ -1,5 +1,5 @@
-use toad_core::ProjectDetail;
 use std::collections::HashSet;
+use toad_core::ProjectDetail;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct MigrationPreflight {
@@ -17,7 +17,10 @@ pub fn compare_projects(source: &ProjectDetail, target: &ProjectDetail) -> Migra
 
     // 1. Stack comparison
     if source.stack != target.stack {
-        mismatches.push(format!("Stack mismatch: {} vs {}", source.stack, target.stack));
+        mismatches.push(format!(
+            "Stack mismatch: {} vs {}",
+            source.stack, target.stack
+        ));
         score -= 40;
     } else {
         matches.push(format!("Identical stacks ({})", source.stack));
@@ -26,11 +29,11 @@ pub fn compare_projects(source: &ProjectDetail, target: &ProjectDetail) -> Migra
     // 2. DNA Roles comparison
     let source_roles: HashSet<_> = source.dna.roles.iter().collect();
     let target_roles: HashSet<_> = target.dna.roles.iter().collect();
-    
+
     for role in source_roles.intersection(&target_roles) {
         matches.push(format!("Matching role: {}", role));
     }
-    
+
     for role in source_roles.difference(&target_roles) {
         mismatches.push(format!("Source role missing in target: {}", role));
         score -= 10;
@@ -52,7 +55,13 @@ pub fn compare_projects(source: &ProjectDetail, target: &ProjectDetail) -> Migra
     MigrationPreflight {
         source: source.name.clone(),
         target: target.name.clone(),
-        compatibility_score: if score < 0 { 0 } else if score > 100 { 100 } else { score as u8 },
+        compatibility_score: if score < 0 {
+            0
+        } else if score > 100 {
+            100
+        } else {
+            score as u8
+        },
         mismatches,
         matching_capabilities: matches,
     }
