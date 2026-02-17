@@ -5,6 +5,7 @@ use toad_core::{BatchOperationReport, OperationResult, ProjectDetail};
 
 pub mod audit;
 pub mod clean;
+pub mod doctor;
 pub mod migration;
 pub mod safety;
 pub mod shell;
