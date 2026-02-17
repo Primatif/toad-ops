@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use toad_core::{BatchOperationReport, OperationResult, ProjectDetail};
 
+pub mod analytics;
 pub mod audit;
 pub mod clean;
 pub mod doctor;
