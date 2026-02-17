@@ -41,11 +41,14 @@ pub fn run_health_check(workspace: &Workspace) -> ToadResult<HealthReport> {
     }
 
     let registry = ProjectRegistry::load(workspace.active_context.as_deref(), None);
-    let project_count = registry.as_ref().map(|r| r.projects.len()).unwrap_or(0);
-
-    if registry.is_err() {
-        issues.push("Run 'toad sync' to build registry".to_string());
-    }
+    let project_count = match &registry {
+        Ok(r) => r.projects.len(),
+        Err(e) => {
+            issues.push(format!("Registry load failed: {}", e));
+            issues.push("Run 'toad sync' to build registry".to_string());
+            0
+        }
+    };
 
     let git_remotes_reachable = std::process::Command::new("git")
         .args(["ls-remote", "--exit-code", "origin"])
