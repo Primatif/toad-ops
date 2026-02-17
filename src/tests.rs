@@ -55,7 +55,7 @@ fn test_clean_project() -> ToadResult<()> {
     fs::create_dir(p.join("target"))?;
     fs::write(p.join("target/a.txt"), "data")?;
 
-    let res = clean_project(p, &vec!["target".to_string()], false)?;
+    let res = clean_project(p, &["target".to_string()], false)?;
     assert_eq!(res.files_removed, 1);
     assert!(!p.join("target").exists());
     Ok(())
@@ -67,8 +67,8 @@ fn test_clean_project_safety() -> ToadResult<()> {
     let p = dir.path();
     fs::write(p.join("Cargo.toml"), "data")?;
 
-    let res = clean_project(p, &vec!["Cargo.toml".to_string()], false)?;
-    assert!(res.errors.len() > 0);
+    let res = clean_project(p, &["Cargo.toml".to_string()], false)?;
+    assert!(!res.errors.is_empty());
     assert!(p.join("Cargo.toml").exists());
     Ok(())
 }
