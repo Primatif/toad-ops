@@ -1,10 +1,9 @@
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 use toad_core::{
-    ToadResult, ProjectDetail,
-    DependencyGraph, DependencyNode, VelocityMetrics, DebtIndicators,
-    HealthScore, AiReadiness, ProjectInsight
+    AiReadiness, DebtIndicators, DependencyGraph, DependencyNode, HealthScore, PatternMetrics,
+    ProjectDetail, ProjectInsight, ToadResult, TrendReport, VelocityMetrics,
 };
 
 pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<DependencyGraph> {
@@ -13,13 +12,16 @@ pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<Dependency
 
     // 1. Initialize nodes and mapping
     for p in projects {
-        nodes.insert(p.name.clone(), DependencyNode {
-            name: p.name.clone(),
-            version: None,
-            depth: 0,
-            dependents: Vec::new(),
-            dependencies: Vec::new(),
-        });
+        nodes.insert(
+            p.name.clone(),
+            DependencyNode {
+                name: p.name.clone(),
+                version: None,
+                depth: 0,
+                dependents: Vec::new(),
+                dependencies: Vec::new(),
+            },
+        );
 
         // Heuristic: Read Cargo.toml to get the actual crate name
         let cargo_path = p.path.join("Cargo.toml");
@@ -42,15 +44,19 @@ pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<Dependency
             if let Ok(metadata) = cargo_metadata::MetadataCommand::new()
                 .manifest_path(&cargo_path)
                 .no_deps()
-                .exec() {
-                
+                .exec()
+            {
                 if let Some(package) = metadata.packages.iter().find(|pkg| {
-                    crate_to_project.get(&pkg.name).map_or(false, |proj| proj == &p.name) || 
-                    pkg.manifest_path.parent().map(|parent| p.path.ends_with(parent.as_std_path())).unwrap_or(false)
+                    crate_to_project.get(&pkg.name) == Some(&p.name)
+                        || pkg
+                            .manifest_path
+                            .parent()
+                            .map(|parent| p.path.ends_with(parent.as_std_path()))
+                            .unwrap_or(false)
                 }) {
                     if let Some(node) = nodes.get_mut(&p.name) {
                         node.version = Some(package.version.to_string());
-                        
+
                         for dep in &package.dependencies {
                             // Map crate name back to project name
                             if let Some(dep_proj_name) = crate_to_project.get(&dep.name) {
@@ -65,7 +71,9 @@ pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<Dependency
                 // B. Fallback to naive string matching if cargo_metadata fails
                 if let Ok(content) = fs::read_to_string(&cargo_path) {
                     for (crate_name, proj_name) in &crate_to_project {
-                        if proj_name == &p.name { continue; }
+                        if proj_name == &p.name {
+                            continue;
+                        }
                         let search_pattern = format!("{} =", crate_name);
                         if content.contains(&search_pattern) {
                             if let Some(node) = nodes.get_mut(&p.name) {
@@ -85,7 +93,10 @@ pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<Dependency
     let nodes_clone = nodes.clone();
     for (name, node) in &nodes_clone {
         for dep in &node.dependencies {
-            dependents_map.entry(dep.clone()).or_default().push(name.clone());
+            dependents_map
+                .entry(dep.clone())
+                .or_default()
+                .push(name.clone());
         }
     }
 
@@ -104,7 +115,8 @@ pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<Dependency
     });
 
     // 5. Orphaned projects (no dependents AND no dependencies)
-    let orphaned_projects = nodes.values()
+    let orphaned_projects = nodes
+        .values()
         .filter(|n| n.dependents.is_empty() && n.dependencies.is_empty())
         .map(|n| n.name.clone())
         .collect();
@@ -128,7 +140,14 @@ fn detect_cycles(nodes: &HashMap<String, DependencyNode>) -> Vec<Vec<String>> {
 
     for name in nodes.keys() {
         if !visited.contains(name) {
-            dfs_cycle(name, nodes, &mut visited, &mut on_stack, &mut stack, &mut cycles);
+            dfs_cycle(
+                name,
+                nodes,
+                &mut visited,
+                &mut on_stack,
+                &mut stack,
+                &mut cycles,
+            );
         }
     }
 
@@ -167,24 +186,44 @@ fn dfs_cycle(
 pub fn analyze_velocity(path: &Path, days: u32) -> ToadResult<VelocityMetrics> {
     // This will need git history
     // For now, return mock data or basic stats
-    let commit_res = toad_git::run_git(path, &["log", &format!("--since={} days ago", days), "--pretty=format:%an"], "internal")?;
+    let commit_res = toad_git::run_git(
+        path,
+        &[
+            "log",
+            &format!("--since={} days ago", days),
+            "--pretty=format:%an",
+        ],
+        "internal",
+    )?;
     let authors: HashSet<String> = commit_res.stdout.lines().map(|s| s.to_string()).collect();
     let commit_count = commit_res.stdout.lines().count();
 
-    let stats_res = toad_git::run_git(path, &["log", &format!("--since={} days ago", days), "--shortstat"], "internal")?;
+    let stats_res = toad_git::run_git(
+        path,
+        &["log", &format!("--since={} days ago", days), "--shortstat"],
+        "internal",
+    )?;
     // Parse "+1,234 lines, -567 lines"
     let mut lines_added = 0;
     let mut lines_removed = 0;
-    
+
     for line in stats_res.stdout.lines() {
         if line.contains("insertion") {
             // Very naive parsing
             let parts: Vec<&str> = line.split(',').collect();
             for p in parts {
                 if p.contains("insertion") {
-                    lines_added += p.trim().split_whitespace().next().and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
+                    lines_added += p
+                        .split_whitespace()
+                        .next()
+                        .and_then(|s| s.parse::<usize>().ok())
+                        .unwrap_or(0);
                 } else if p.contains("deletion") {
-                    lines_removed += p.trim().split_whitespace().next().and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
+                    lines_removed += p
+                        .split_whitespace()
+                        .next()
+                        .and_then(|s| s.parse::<usize>().ok())
+                        .unwrap_or(0);
                 }
             }
         }
@@ -213,29 +252,29 @@ pub fn analyze_debt(path: &Path) -> ToadResult<DebtIndicators> {
         .git_ignore(true)
         .build();
 
-    let noise_extensions = ["png", "jpg", "jpeg", "gif", "mov", "mp4", "lock", "sum", "bin", "exe", "wasm", "pdf"];
+    let noise_extensions = [
+        "png", "jpg", "jpeg", "gif", "mov", "mp4", "lock", "sum", "bin", "exe", "wasm", "pdf",
+    ];
 
-    for entry in walker {
-        if let Ok(entry) = entry {
-            let p = entry.path();
-            if p.is_file() {
-                // Skip binary and noise
-                if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
-                    if noise_extensions.contains(&ext.to_lowercase().as_str()) {
-                        continue;
-                    }
+    for entry in walker.flatten() {
+        let p = entry.path();
+        if p.is_file() {
+            // Skip binary and noise
+            if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
+                if noise_extensions.contains(&ext.to_lowercase().as_str()) {
+                    continue;
                 }
+            }
 
-                // Read as string, skip if not valid UTF-8
-                if let Ok(content) = fs::read_to_string(p) {
-                    todo_count += content.to_lowercase().matches("todo").count();
-                    fixme_count += content.to_lowercase().matches("fixme").count();
-                    hack_count += content.to_lowercase().matches("hack").count();
+            // Read as string, skip if not valid UTF-8
+            if let Ok(content) = fs::read_to_string(p) {
+                todo_count += content.to_lowercase().matches("todo").count();
+                fixme_count += content.to_lowercase().matches("fixme").count();
+                hack_count += content.to_lowercase().matches("hack").count();
 
-                    let line_count = content.lines().count();
-                    if line_count > 700 {
-                        large_files.push(p.to_string_lossy().into_owned());
-                    }
+                let line_count = content.lines().count();
+                if line_count > 700 {
+                    large_files.push(p.to_string_lossy().into_owned());
                 }
             }
         }
@@ -262,10 +301,18 @@ fn calculate_debt_score(todo: usize, fixme: usize, large: usize) -> f32 {
 }
 
 pub fn calculate_health_score(p: &ProjectDetail) -> ToadResult<HealthScore> {
-    let vcs_score = if p.vcs_status == toad_core::VcsStatus::Clean { 20 } else { 10 };
-    let activity_score = if p.activity == toad_core::ActivityTier::Active { 15 } else { 5 };
+    let vcs_score = if p.vcs_status == toad_core::VcsStatus::Clean {
+        20
+    } else {
+        10
+    };
+    let activity_score = if p.activity == toad_core::ActivityTier::Active {
+        15
+    } else {
+        5
+    };
     let doc_score = if p.essence.is_some() { 15 } else { 0 };
-    
+
     // Naive quality score
     let mut quality_score = 15;
     if p.total_size > 0 && p.bloat_index > 0.5 {
@@ -312,9 +359,30 @@ pub fn analyze_ai_readiness(p: &ProjectDetail) -> ToadResult<AiReadiness> {
     })
 }
 
+pub fn analyze_trends(_path: &Path, _days: u32) -> ToadResult<TrendReport> {
+    // v1.2.0 planned
+    Ok(TrendReport {
+        points: Vec::new(),
+        health_trend: "Historical trends analysis requires persistent state (v1.2.0 planned)."
+            .to_string(),
+        disk_trend: "N/A".to_string(),
+        activity_trend: "N/A".to_string(),
+    })
+}
+
+pub fn analyze_patterns(_projects: &[ProjectDetail]) -> ToadResult<PatternMetrics> {
+    // v1.2.0 planned
+    Ok(PatternMetrics {
+        common_dependencies: Vec::new(),
+        error_handling_consistency: 0.0,
+        naming_convention_compliance: 0.0,
+        architectural_violations: Vec::new(),
+    })
+}
+
 pub fn generate_insights(projects: &[ProjectDetail]) -> ToadResult<Vec<ProjectInsight>> {
     let mut insights = Vec::new();
-    
+
     for p in projects {
         if p.vcs_status == toad_core::VcsStatus::Dirty {
             insights.push(ProjectInsight {
@@ -324,9 +392,10 @@ pub fn generate_insights(projects: &[ProjectDetail]) -> ToadResult<Vec<ProjectIn
                 action_item: "Commit or stash changes.".to_string(),
             });
         }
-        
-        if p.total_size > 1_000_000_000 { // > 1GB
-             insights.push(ProjectInsight {
+
+        if p.total_size > 1_000_000_000 {
+            // > 1GB
+            insights.push(ProjectInsight {
                 title: format!("Large Storage Footprint: {}", p.name),
                 description: "Project exceeds 1GB, check for build artifacts or logs.".to_string(),
                 severity: "Low".to_string(),

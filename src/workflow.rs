@@ -35,7 +35,7 @@ pub fn distribute_skills(
     let mut synced_paths = Vec::new();
 
     for vendor_spec in vendors {
-        let (_vendor_name, vendor_dir) = if vendor_spec.contains(':') {
+        let (vendor_name, vendor_dir) = if vendor_spec.contains(':') {
             let parts: Vec<&str> = vendor_spec.splitn(2, ':').collect();
             (parts[0], root.join(parts[1]))
         } else {
@@ -65,7 +65,30 @@ pub fn distribute_skills(
         for (name, content) in &skills {
             let filename = format!("{}.md", name);
             let path = vendor_dir.join(filename);
-            fs::write(&path, content)?;
+
+            let final_content = match vendor_name.to_lowercase().as_str() {
+                "gemini" => {
+                    let description = match name.as_str() {
+                        "toad-blueprint" => "Architectural blueprint and dependency map.",
+                        "toad-cli" => "Toad Control CLI command reference.",
+                        "toad-mcp" => "Model Context Protocol tool reference.",
+                        _ => "Auto-generated ecosystem context.",
+                    };
+                    format!(
+                        "<skill>\n  <name>{}</name>\n  <description>{}</description>\n  <instructions>\n{}\n  </instructions>\n</skill>\n",
+                        name, description, content
+                    )
+                }
+                _ => {
+                    if content.ends_with('\n') {
+                        content.clone()
+                    } else {
+                        format!("{}\n", content)
+                    }
+                }
+            };
+
+            fs::write(&path, final_content)?;
             synced_paths.push(path);
         }
     }
