@@ -17,6 +17,8 @@ pub struct HealthReport {
     pub atlas_exists: bool,
     pub issues: Vec<String>,
     pub warnings: Vec<String>,
+    #[serde(default)]
+    pub diagnostics: toad_core::DiagnosticReport,
 }
 
 pub fn run_health_check(workspace: &Workspace) -> ToadResult<HealthReport> {
@@ -105,5 +107,6 @@ pub fn run_health_check(workspace: &Workspace) -> ToadResult<HealthReport> {
         atlas_exists,
         issues,
         warnings,
+        diagnostics: toad_core::DiagnosticReport::new(),
     })
 }
