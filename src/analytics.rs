@@ -47,7 +47,7 @@ pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<Dependency
                 .exec()
             {
                 if let Some(package) = metadata.packages.iter().find(|pkg| {
-                    crate_to_project.get(&pkg.name) == Some(&p.name)
+                    crate_to_project.get(pkg.name.as_str()) == Some(&p.name)
                         || pkg
                             .manifest_path
                             .parent()
@@ -59,7 +59,7 @@ pub fn analyze_dependencies(projects: &[ProjectDetail]) -> ToadResult<Dependency
 
                         for dep in &package.dependencies {
                             // Map crate name back to project name
-                            if let Some(dep_proj_name) = crate_to_project.get(&dep.name) {
+                            if let Some(dep_proj_name) = crate_to_project.get(dep.name.as_str()) {
                                 if !node.dependencies.contains(dep_proj_name) {
                                     node.dependencies.push(dep_proj_name.clone());
                                 }

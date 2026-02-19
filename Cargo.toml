@@ -6,7 +6,7 @@ license = "BUSL-1.1"
 
 [dependencies]
 anyhow = "1.0"
-cargo_metadata = "0.18"
+cargo_metadata = "0.23.1"
 chrono = "0.4"
 ignore = "0.4"
 rayon = "1.11.0"
