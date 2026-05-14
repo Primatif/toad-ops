@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::path::Path;
+use toad_core::{AnalyticsReport, ProjectAnalytics, ProjectDetail};
 use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Default)]
@@ -8,6 +9,62 @@ pub struct ProjectStats {
     pub artifact_bytes: u64,
     pub source_bytes: u64,
     pub bloat_index: f64,
+}
+
+/// Generates a structured analytics report for a set of projects.
+pub fn generate_analytics_report(
+    projects: &[ProjectDetail],
+    query: Option<&str>,
+    tag: Option<&str>,
+) -> AnalyticsReport {
+    let mut offenders = Vec::new();
+    let mut total_usage = 0;
+    let mut total_artifacts = 0;
+
+    for p in projects {
+        if let Some(q) = query {
+            if !p.name.to_lowercase().contains(&q.to_lowercase()) {
+                continue;
+            }
+        }
+
+        if let Some(t) = tag {
+            let target = if t.starts_with('#') {
+                t.to_string()
+            } else {
+                format!("#{}", t)
+            };
+            if !p.tags.contains(&target) {
+                continue;
+            }
+        }
+
+        let stats = calculate_project_stats(&p.path, &artifact_set_to_hashset(&p.artifact_dirs));
+
+        total_usage += stats.total_bytes;
+        total_artifacts += stats.artifact_bytes;
+
+        offenders.push(ProjectAnalytics {
+            name: p.name.clone(),
+            total_size: stats.total_bytes,
+            artifact_size: stats.artifact_bytes,
+            bloat_percentage: stats.bloat_index,
+            activity: p.activity.clone(),
+        });
+    }
+
+    // Sort offenders by size (descending)
+    offenders.sort_by(|a, b| b.total_size.cmp(&a.total_size));
+
+    AnalyticsReport {
+        total_usage,
+        total_artifacts,
+        offenders,
+    }
+}
+
+fn artifact_set_to_hashset(dirs: &[String]) -> std::collections::HashSet<&str> {
+    dirs.iter().map(|s| s.as_str()).collect()
 }
 
 /// Calculates disk usage statistics for a project.
